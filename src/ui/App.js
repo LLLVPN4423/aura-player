@@ -133,7 +133,7 @@ export class App {
         </div>
         <div class="top-actions">
           <button class="btn btn-primary" id="btn-add" type="button">${icons.plus} Thêm nhạc</button>
-          <button class="btn" id="btn-fetch" type="button" title="Dán link tải">${icons.link} Fetch</button>
+          <button class="btn btn-yt" id="btn-fetch" type="button" title="Dán link YouTube / TikTok / …">${icons.link} YouTube</button>
           <button class="btn btn-ghost" id="btn-clear" type="button" title="Xóa hàng đợi">${icons.trash}</button>
         </div>
       </header>

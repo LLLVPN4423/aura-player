@@ -141,6 +141,18 @@ button {
   color: #12110f;
 }
 
+.btn-yt {
+  background: rgba(196, 179, 150, 0.14);
+  border-color: rgba(196, 179, 150, 0.4);
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+.btn-yt:hover {
+  background: rgba(196, 179, 150, 0.22);
+  color: var(--text);
+}
+
 .btn-ghost {
   width: 42px;
   padding: 0;

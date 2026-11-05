@@ -79,8 +79,8 @@ export class DownloadPage {
         <header class="dl-head">
           <button type="button" class="btn btn-ghost" id="dl-back" title="Quay lại">${icons.close}</button>
           <div>
-            <h2>Fetch</h2>
-            <p>Dán link · tải về · thêm vào Queue</p>
+            <h2>YouTube &amp; link</h2>
+            <p>Dán link YT / TikTok / SoundCloud… · tải về · thêm Queue</p>
           </div>
         </header>
 
