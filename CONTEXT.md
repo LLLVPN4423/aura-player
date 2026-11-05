@@ -142,6 +142,13 @@ mediaB → trackGainB ─┴→ sum → crossfeed → EQ(10) → panner → prea
 **Khuyến nghị nghe trung thực:** bật **Pure**.  
 **Khuyến nghị headphone lệch tonal:** tắt Pure → chọn Headphone EQ gần model của bạn.
 
+### Fetch (yt-dlp)
+
+- UI: nút **Fetch** → `DownloadPage.js`
+- API: `serve.js` `/api/ytdlp/*` + thư mục `downloads/`
+- Chỉ local (`node serve.js`); Pages không hỗ trợ
+- Binary: PATH hoặc `bin/yt-dlp.exe`
+
 ### Hiệu năng
 
 `PERF_PRESETS`: `low` | `balanced` | `high` — FFT size, FPS, số bar spectrum.  

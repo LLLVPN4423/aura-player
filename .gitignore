@@ -1,5 +1,10 @@
 node_modules/
 dist/
+downloads/
+bin/*.exe
+bin/ffmpeg*
+bin/ffprobe*
+bin/ffplay*
 .DS_Store
 Thumbs.db
 *.log

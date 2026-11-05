@@ -13,6 +13,7 @@ import { analyzeTrack, qualityBadge, lufsNormGainDb } from '../analysis/metrics.
 import { Visualizer } from './visualizer.js';
 import { coverDataUrl, extractCoverFromFile } from './cover.js';
 import { icons } from './icons.js';
+import { DownloadPage } from './DownloadPage.js';
 
 const SETTINGS_KEY = 'aura-hifi-settings';
 
@@ -132,9 +133,12 @@ export class App {
         </div>
         <div class="top-actions">
           <button class="btn btn-primary" id="btn-add" type="button">${icons.plus} Thêm nhạc</button>
+          <button class="btn" id="btn-fetch" type="button" title="Dán link tải">${icons.link} Fetch</button>
           <button class="btn btn-ghost" id="btn-clear" type="button" title="Xóa hàng đợi">${icons.trash}</button>
         </div>
       </header>
+
+      <div id="download-host" class="download-host" hidden aria-hidden="true"></div>
 
       <section class="hero" id="hero">
         <div class="art-wrap">
@@ -233,16 +237,23 @@ export class App {
       fav: this.root.querySelector('#btn-fav'),
       pure: this.root.querySelector('#btn-pure'),
       sleep: this.root.querySelector('#btn-sleep'),
+      downloadHost: this.root.querySelector('#download-host'),
     };
 
     this.engine.attachMedia(this.els.mediaA, this.els.mediaB);
     this.viz = new Visualizer(this.root.querySelector('#spectrum'), null);
+    this.downloadPage = new DownloadPage(this.els.downloadHost, {
+      onBack: () => {},
+      onImportFiles: (files) => this.addFiles(files),
+      toast: (msg) => this.toast(msg),
+    });
     this.renderQueue();
     this.renderStudio();
   }
 
   bind() {
     this.root.querySelector('#btn-add').onclick = () => this.els.file.click();
+    this.root.querySelector('#btn-fetch').onclick = () => this.downloadPage.open();
     this.root.querySelector('#btn-clear').onclick = () => this.clearAll();
 
     this.els.file.onchange = () => {

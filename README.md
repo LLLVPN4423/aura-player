@@ -31,6 +31,16 @@ Trình nghe nhạc phong cách **Premium Minimalist Hi‑Fi** (cảm hứng dCS 
 
 Repo: [github.com/LLLVPN4423/aura-player](https://github.com/LLLVPN4423/aura-player)
 
+## Fetch — dán link tải
+
+Nút **Fetch** cạnh **Thêm nhạc** (cần chạy local):
+
+1. Cài một lần: `winget install yt-dlp.yt-dlp` (và ffmpeg nếu chưa có)
+2. `node serve.js` → mở http://localhost:8765/
+3. Fetch → dán link YouTube/TikTok/SoundCloud… → tải MP3/Video → **Thêm vào Queue**
+
+Không dùng được trên GitHub Pages (không chạy yt-dlp trong trình duyệt).
+
 ## Chạy local
 
 ```powershell
