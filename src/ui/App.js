@@ -133,7 +133,8 @@ export class App {
         </div>
         <div class="top-actions">
           <button class="btn btn-primary" id="btn-add" type="button">${icons.plus} Thêm nhạc</button>
-          <button class="btn btn-yt" id="btn-fetch" type="button" title="Dán link YouTube / TikTok / …">${icons.link} YouTube</button>
+          <button class="btn btn-yt" id="btn-fetch" type="button" title="Dán link tải (cần node serve.js)">${icons.link} YouTube</button>
+          <a class="btn btn-cobalt" id="btn-cobalt" href="https://cobalt.tools/" target="_blank" rel="noopener noreferrer" title="Mở Cobalt — tải online không cần local">Cobalt</a>
           <button class="btn btn-ghost" id="btn-clear" type="button" title="Xóa hàng đợi">${icons.trash}</button>
         </div>
       </header>

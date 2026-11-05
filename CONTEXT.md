@@ -236,6 +236,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 - LUFS (BS.1770-ish) normalize + Bauer crossfeed
 - Deploy GitHub Pages + repo `LLLVPN4423/aura-player`
 - **Fetch / YouTube:** nút cạnh Thêm nhạc (nhãn **YouTube**), `DownloadPage`, API `/api/ytdlp/*` trong `serve.js`, thư mục `downloads/`
+- Nút **Cobalt** → mở https://cobalt.tools/ (tải online; Pages dùng được)
 - Rule `.cursor/rules/context-protocol.mdc`: mọi agent phải đọc/ghi CONTEXT
 
 ---

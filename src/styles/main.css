@@ -153,6 +153,26 @@ button {
   color: var(--text);
 }
 
+a.btn {
+  text-decoration: none;
+}
+
+.btn-cobalt {
+  background: rgba(100, 140, 180, 0.16);
+  border-color: rgba(120, 160, 200, 0.4);
+  color: #b8d4ec;
+  font-weight: 600;
+}
+
+.btn-cobalt:hover {
+  background: rgba(100, 140, 180, 0.28);
+  color: var(--text);
+}
+
+.top-actions {
+  flex-wrap: wrap;
+}
+
 .btn-ghost {
   width: 42px;
   padding: 0;
