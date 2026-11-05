@@ -1,0 +1,29 @@
+---
+description: Bắt buộc đọc và cập nhật CONTEXT.md trước/sau mọi thay đổi Aura
+alwaysApply: true
+---
+
+# CONTEXT.md — bắt buộc cho mọi agent
+
+## Trước khi làm gì
+
+1. **Đọc `CONTEXT.md` ngay** (và chỉ đọc thêm file code khi CONTEXT chưa đủ).
+2. Bám design Hi‑Fi, stack vanilla, dual-audio, Pure/Fetch local — **đừng đoán** hay quét cả repo nếu CONTEXT đã trả lời.
+3. Mục tiêu: **tiết kiệm token + thời gian**; tránh làm lại quyết định đã ghi.
+
+## Sau khi làm xong (mọi thay đổi có ý nghĩa)
+
+Cập nhật `CONTEXT.md` trong cùng lượt làm việc:
+
+- Kiến trúc / API / file mới / tính năng mới
+- Design token hoặc quy ước UI đổi
+- Cách chạy, deploy, phụ thuộc (yt-dlp, v.v.)
+- Quyết định “nên / không nên” mới
+
+Ghi ngắn, đúng sự thật — thêm mục **Changelog** (ngày + 1–3 bullet) khi có thay đổi đáng kể.
+
+## Không được
+
+- Sửa lớn mà không đọc CONTEXT trước
+- Để CONTEXT lệch so với code sau khi ship
+- Commit/push bỏ qua cập nhật CONTEXT nếu vừa đổi hành vi hệ thống

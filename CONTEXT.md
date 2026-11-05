@@ -1,7 +1,18 @@
 # Aura Player — Project Context
 
-> File này là nguồn ngữ cảnh cho người và AI khi tiếp tục phát triển dự án.
-> Đọc trước khi sửa UI, audio engine, hoặc thêm tính năng.
+> **Bắt buộc với mọi agent:** đọc file này *trước* khi làm việc; cập nhật file này *sau* mọi thay đổi có ý nghĩa.  
+> Rule Cursor: `.cursor/rules/context-protocol.mdc` (`alwaysApply: true`).  
+> Mục tiêu: hiểu đúng dự án, tránh làm lại, tiết kiệm token và thời gian.
+
+---
+
+## 0. Protocol agent
+
+| Khi | Việc |
+|-----|------|
+| Bắt đầu task | Đọc CONTEXT (ưu tiên hơn quét cả repo) |
+| Xong task | Ghi thay đổi vào đúng mục + **Changelog** bên dưới |
+| Không chắc | Tra CONTEXT trước; chỉ mở code khi cần chi tiết |
 
 ---
 
@@ -212,6 +223,20 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 | Dual audio cho crossfade | MediaElement không crossfade 1 nguồn |
 | Artwork hash + ID3 APIC | Không phụ thuộc CDN / thư viện nặng |
 | Lab tách khỏi hero | Đúng tinh thần Hi‑Fi minimalist |
+| Fetch qua yt-dlp local | UI dán link; không chạy trên GitHub Pages |
+| Rule luôn đọc/ghi CONTEXT | Tiết kiệm token; đồng bộ kiến thức giữa các agent |
+
+---
+
+## 12. Changelog
+
+### 2026-11-06
+
+- Pure mode + Headphone EQ presets
+- LUFS (BS.1770-ish) normalize + Bauer crossfeed
+- Deploy GitHub Pages + repo `LLLVPN4423/aura-player`
+- **Fetch:** nút cạnh Thêm nhạc, `DownloadPage`, API `/api/ytdlp/*` trong `serve.js`, thư mục `downloads/`
+- Rule `.cursor/rules/context-protocol.mdc`: mọi agent phải đọc/ghi CONTEXT
 
 ---
 
