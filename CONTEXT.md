@@ -125,8 +125,8 @@ mediaB → trackGainB ─┴→ sum → crossfeed → EQ(10) → panner → prea
 | Feature | Nơi xử lý | Ghi chú |
 |---------|-----------|---------|
 | Crossfade 0–8s | AudioEngine + App.maybeCrossfade | Dual path |
-| Loudness normalize | metrics + preamp gain | Target ~−14 dB RMS thô |
-| Headphone crossfeed | ChannelSplitter/Merger | 0–100% |
+| Loudness normalize | `analysis/lufs.js` → preamp | Integrated LUFS gần BS.1770, target −14; clamp ±10 dB |
+| Bauer crossfeed | LP 700 Hz + delay 0.32 ms L↔R | 0–100%; Pure = off |
 | Balance | StereoPanner | −1…1 |
 | Soft limiter | DynamicsCompressor | Bật/tắt trong Sound |
 | EQ 10 band + presets | BiquadFilter chain | flat/bass/vocal/acoustic/night/bright |

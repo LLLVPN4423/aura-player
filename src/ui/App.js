@@ -9,7 +9,7 @@ import {
   probeBrowserSupport,
   extOf,
 } from '../player/formats.js';
-import { analyzeTrack, qualityBadge, loudnessNormGainDb } from '../analysis/metrics.js';
+import { analyzeTrack, qualityBadge, lufsNormGainDb } from '../analysis/metrics.js';
 import { Visualizer } from './visualizer.js';
 import { coverDataUrl, extractCoverFromFile } from './cover.js';
 import { icons } from './icons.js';
@@ -463,11 +463,12 @@ export class App {
               </div>
             </div>
             <div class="field">
-              <label class="lbl">Headphone crossfeed</label>
+              <label class="lbl">Bauer crossfeed</label>
               <div class="row">
                 <input type="range" id="xf" min="0" max="100" value="${Math.round((this.settings.crossfeed || 0) * 100)}" ${pure ? 'disabled' : ''}/>
                 <span class="val" id="xf-v">${Math.round((this.settings.crossfeed || 0) * 100)}%</span>
               </div>
+              <p class="hint">LP ~700 Hz + delay 0.32 ms — headphone bớt mệt, sân khấu tự nhiên hơn</p>
             </div>
             <div class="field">
               <label class="lbl">Balance</label>
@@ -476,7 +477,7 @@ export class App {
                 <span class="val" id="bal-v">${Math.round((this.settings.balance || 0) * 100)}</span>
               </div>
             </div>
-            <label class="check"><input type="checkbox" id="norm" ${this.settings.loudnessNorm ? 'checked' : ''} ${pure ? 'disabled' : ''}/> Loudness normalize</label>
+            <label class="check"><input type="checkbox" id="norm" ${this.settings.loudnessNorm ? 'checked' : ''} ${pure ? 'disabled' : ''}/> Loudness normalize (LUFS / BS.1770 → −14)</label>
             <label class="check"><input type="checkbox" id="lim" ${this.settings.limiter ? 'checked' : ''} ${pure ? 'disabled' : ''}/> Soft limiter</label>
           </div>
         </div>`;
@@ -554,7 +555,7 @@ export class App {
             <div class="meter"><label>Peak</label><strong id="m-peak">—</strong></div>
             <div class="meter"><label>RMS</label><strong id="m-rms">—</strong></div>
             <div class="meter"><label>BPM</label><strong id="m-bpm">${m?.bpm ?? '—'}</strong></div>
-            <div class="meter"><label>Loudness</label><strong id="m-lufs">${m && Number.isFinite(m.loud) ? m.loud.toFixed(1) + ' dB' : '—'}</strong></div>
+            <div class="meter"><label>${m?.loudUnit === 'LUFS' || Number.isFinite(m?.lufs) ? 'LUFS' : 'Loudness'}</label><strong id="m-lufs">${m && Number.isFinite(m.lufs) ? m.lufs.toFixed(1) : m && Number.isFinite(m.loud) ? m.loud.toFixed(1) : '—'} ${m?.loudUnit === 'LUFS' || Number.isFinite(m?.lufs) ? '' : m && Number.isFinite(m.loud) ? 'dB' : ''}</strong></div>
             <div class="meter"><label>Dynamic range</label><strong id="m-dr">${m?.dr != null ? m.dr.toFixed(1) + ' dB' : '—'}</strong></div>
             <div class="meter"><label>Channels</label><strong id="m-ch">${m?.channels ?? '—'}</strong></div>
           </div>
@@ -806,8 +807,9 @@ export class App {
       this.engine.setLoudnessGainDb(0);
       return;
     }
-    const loud = this.playlist.current?.meta?.loud;
-    this.engine.setLoudnessGainDb(loudnessNormGainDb(loud));
+    const meta = this.playlist.current?.meta;
+    const measured = Number.isFinite(meta?.lufs) ? meta.lufs : meta?.loud;
+    this.engine.setLoudnessGainDb(lufsNormGainDb(measured, -14));
   }
 
   toggleFav() {

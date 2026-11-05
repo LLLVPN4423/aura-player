@@ -14,8 +14,8 @@ Trình nghe nhạc phong cách **Premium Minimalist Hi‑Fi** (cảm hứng dCS 
 | Tính năng | Mô tả |
 |-----------|--------|
 | Crossfade | 0–8s chuyển bài mượt (dual audio path) |
-| Loudness normalize | Cân mức to nhỏ giữa các bài |
-| Headphone crossfeed | Giảm mệt stereo khi nghe tai nghe |
+| Loudness normalize | LUFS gần BS.1770 → −14 (ít đè nhạc hơn RMS thô) |
+| Bauer crossfeed | LP + delay chuẩn hơn — headphone bớt mệt |
 | Balance | Cân trái/phải |
 | Soft limiter | Chống clip khi boost EQ/norm |
 | EQ 10 band + presets | Flat, Bass, Vocal, Acoustic, Night, Bright |

@@ -1,4 +1,7 @@
 import { estimateBpm, buildPeaks, roughLoudnessDb } from './bpm.js';
+import { measureIntegratedLufs, lufsNormGainDb } from './lufs.js';
+
+export { lufsNormGainDb };
 
 /** Dynamic Range thô (dB) — peak vs RMS crest factor */
 export function roughDynamicRange(audioBuffer) {
@@ -34,21 +37,30 @@ export function qualityBadge({ ext, sampleRate, bitDepth }) {
   return { tier, label: parts.join(' · ') };
 }
 
-/** Gain để đưa về target loudness (~ -14 dB RMS thô) */
+/** @deprecated dùng lufsNormGainDb — giữ alias tương thích */
 export function loudnessNormGainDb(measuredDb, target = -14) {
-  if (!Number.isFinite(measuredDb)) return 0;
-  return Math.max(-12, Math.min(12, target - measuredDb));
+  return lufsNormGainDb(measuredDb, target);
 }
 
 export async function analyzeTrack(engine, file, { lowPower = false } = {}) {
   const buffer = await engine.decodeFull(file);
   const bpm = estimateBpm(buffer, { maxDuration: lowPower ? 18 : 40, lowPower });
-  const loud = roughLoudnessDb(buffer);
+  let lufs = null;
+  try {
+    lufs = measureIntegratedLufs(buffer, { lowPower });
+  } catch {
+    lufs = null;
+  }
+  // Fallback RMS thô nếu LUFS fail (file rất ngắn / silent)
+  const loudFallback = roughLoudnessDb(buffer);
+  const loud = Number.isFinite(lufs) ? lufs : loudFallback;
   const dr = roughDynamicRange(buffer);
   const peaks = buildPeaks(buffer, lowPower ? 80 : 200);
   return {
     bpm,
     loud,
+    lufs: Number.isFinite(lufs) ? lufs : null,
+    loudUnit: Number.isFinite(lufs) ? 'LUFS' : 'dB(RMS)',
     dr,
     peaks,
     sampleRate: buffer.sampleRate,

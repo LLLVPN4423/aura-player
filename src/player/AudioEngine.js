@@ -108,28 +108,58 @@ export class AudioEngine {
     this.trackGainA.connect(this._sum);
     this.trackGainB.connect(this._sum);
 
-    // Bauer-style crossfeed nhẹ cho headphone
+    // Bauer crossfeed: direct L/R + cross (LP ~700 Hz, delay ~0.32 ms)
     this.crossfeed = this.ctx.createChannelSplitter(2);
-    this.crossfeedGain = this.ctx.createGain();
-    this.crossfeedGain.gain.value = 0;
     const merge = this.ctx.createChannelMerger(2);
-    const delayL = this.ctx.createDelay(0.001);
-    const delayR = this.ctx.createDelay(0.001);
-    delayL.delayTime.value = 0.0003;
-    delayR.delayTime.value = 0.0003;
+
+    const directL = this.ctx.createGain();
+    const directR = this.ctx.createGain();
+    directL.gain.value = 1;
+    directR.gain.value = 1;
+    this._xfDirectL = directL;
+    this._xfDirectR = directR;
+
+    this.crossfeedGain = this.ctx.createGain(); // L → R
+    this.crossfeedGainR = this.ctx.createGain(); // R → L
+    this.crossfeedGain.gain.value = 0;
+    this.crossfeedGainR.gain.value = 0;
+
+    const lpL = this.ctx.createBiquadFilter();
+    const lpR = this.ctx.createBiquadFilter();
+    for (const lp of [lpL, lpR]) {
+      lp.type = 'lowpass';
+      lp.frequency.value = 700;
+      lp.Q.value = 0.707;
+    }
+    const delayL = this.ctx.createDelay(0.005);
+    const delayR = this.ctx.createDelay(0.005);
+    delayL.delayTime.value = 0.00032;
+    delayR.delayTime.value = 0.00032;
 
     this._sum.connect(this.crossfeed);
-    this.crossfeed.connect(merge, 0, 0);
-    this.crossfeed.connect(merge, 1, 1);
-    this.crossfeed.connect(this.crossfeedGain, 0);
-    this.crossfeed.connect(this.crossfeedGain, 1);
-    this.crossfeedGain.connect(delayR);
-    this.crossfeedGain.connect(delayL);
-    delayR.connect(merge, 0, 1);
-    delayL.connect(merge, 0, 0);
+
+    // Direct
+    this.crossfeed.connect(directL, 0);
+    this.crossfeed.connect(directR, 1);
+    directL.connect(merge, 0, 0);
+    directR.connect(merge, 0, 1);
+
+    // Cross L → (LP → delay → gain) → R
+    this.crossfeed.connect(lpL, 0);
+    lpL.connect(delayL);
+    delayL.connect(this.crossfeedGain);
+    this.crossfeedGain.connect(merge, 0, 1);
+
+    // Cross R → (LP → delay → gain) → L
+    this.crossfeed.connect(lpR, 1);
+    lpR.connect(delayR);
+    delayR.connect(this.crossfeedGainR);
+    this.crossfeedGainR.connect(merge, 0, 0);
 
     this._postCross = this.ctx.createGain();
     merge.connect(this._postCross);
+    this._xfLpL = lpL;
+    this._xfLpR = lpR;
 
     this.eqFilters = EQ_FREQS.map((freq, i) => {
       const f = this.ctx.createBiquadFilter();
@@ -333,9 +363,18 @@ export class AudioEngine {
   setCrossfeed(amount) {
     this.crossfeedAmount = Math.max(0, Math.min(1, amount));
     const apply = this.pureMode ? 0 : this.crossfeedAmount;
-    if (this.crossfeedGain) {
-      this.crossfeedGain.gain.setTargetAtTime(apply * 0.45, this.ctx?.currentTime || 0, 0.05);
-    }
+    const t = this.ctx?.currentTime || 0;
+    // Max cross ≈ −5.2 dB; direct hơi hạ khi tăng để giữ loudness ổn định
+    const cross = apply * 0.55;
+    const direct = 1 - apply * 0.12;
+    if (this.crossfeedGain) this.crossfeedGain.gain.setTargetAtTime(cross, t, 0.05);
+    if (this.crossfeedGainR) this.crossfeedGainR.gain.setTargetAtTime(cross, t, 0.05);
+    if (this._xfDirectL) this._xfDirectL.gain.setTargetAtTime(direct, t, 0.05);
+    if (this._xfDirectR) this._xfDirectR.gain.setTargetAtTime(direct, t, 0.05);
+    // Strength cao: LP hơi mở để bleed tự nhiên hơn một chút
+    const lpHz = 700 + apply * 200;
+    if (this._xfLpL) this._xfLpL.frequency.setTargetAtTime(lpHz, t, 0.05);
+    if (this._xfLpR) this._xfLpR.frequency.setTargetAtTime(lpHz, t, 0.05);
   }
 
   setBalance(v) {
@@ -359,9 +398,11 @@ export class AudioEngine {
     this.pureMode = !!on;
     if (this.pureMode) {
       this.applyEqGains(EQ_PRESETS.flat);
-      if (this.crossfeedGain) {
-        this.crossfeedGain.gain.setTargetAtTime(0, this.ctx?.currentTime || 0, 0.05);
-      }
+      const t = this.ctx?.currentTime || 0;
+      if (this.crossfeedGain) this.crossfeedGain.gain.setTargetAtTime(0, t, 0.05);
+      if (this.crossfeedGainR) this.crossfeedGainR.gain.setTargetAtTime(0, t, 0.05);
+      if (this._xfDirectL) this._xfDirectL.gain.setTargetAtTime(1, t, 0.05);
+      if (this._xfDirectR) this._xfDirectR.gain.setTargetAtTime(1, t, 0.05);
       this.loudnessGainDb = 0;
       this.setVolume(this.userVolume);
       if (this.limiter) {

@@ -1,4 +1,4 @@
-const CACHE = 'aura-hifi-v3';
+const CACHE = 'aura-hifi-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const ASSETS = [
   './src/player/formats.js',
   './src/player/headphones.js',
   './src/analysis/bpm.js',
+  './src/analysis/lufs.js',
   './src/analysis/metrics.js',
 ];
 
