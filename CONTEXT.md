@@ -238,7 +238,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 - **Fetch / YouTube:** nút cạnh Thêm nhạc (nhãn **YouTube**), `DownloadPage`, API `/api/ytdlp/*` trong `serve.js`, thư mục `downloads/`
 - Nút **Cobalt** → mở https://cobalt.tools/ (tải online; Pages dùng được)
 - SW `aura-hifi-v6`: JS/CSS/HTML network-first (tránh cache cũ che nút mới)
-- `.nojekyll`: tắt Jekyll trên GitHub Pages (tránh Page build failed che bản có nút Cobalt)
+- `.nojekyll` + workflow `.github/workflows/pages.yml` (`build_type: workflow`) — deploy Pages ổn định (nút Cobalt)
 - Rule `.cursor/rules/context-protocol.mdc`: mọi agent phải đọc/ghi CONTEXT
 
 ---
