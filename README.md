@@ -25,7 +25,13 @@ Trình nghe nhạc phong cách **Premium Minimalist Hi‑Fi** (cảm hứng dCS 
 | Media Session | Điều khiển từ lock screen |
 | Lab | Peak, RMS, BPM, DR, waveform |
 
-## Chạy
+## Demo online
+
+**https://lllvpn4423.github.io/aura-player/**
+
+Repo: [github.com/LLLVPN4423/aura-player](https://github.com/LLLVPN4423/aura-player)
+
+## Chạy local
 
 ```powershell
 node serve.js
@@ -36,3 +42,4 @@ Mở **http://localhost:8765/** (điện thoại: IP in trong terminal).
 ## Phím tắt
 
 Space phát/dừng · ←/→ tua · ↑/↓ volume · N / P next/prev
+
