@@ -20,7 +20,13 @@ Tham chiếu thiết kế: dCS Mosaic, Devialet companion, Volumio Nova, Auris, 
 
 ---
 
-## 2. Cách chạy
+## 2. Repo & deploy
+
+- GitHub: https://github.com/LLLVPN4423/aura-player
+- Live (GitHub Pages): https://lllvpn4423.github.io/aura-player/
+- Branch deploy: `main` → Pages path `/`
+
+## 3. Cách chạy local
 
 ```powershell
 node serve.js
