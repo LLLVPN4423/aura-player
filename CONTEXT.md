@@ -237,6 +237,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 - Deploy GitHub Pages + repo `LLLVPN4423/aura-player`
 - **Fetch / YouTube:** nút cạnh Thêm nhạc (nhãn **YouTube**), `DownloadPage`, API `/api/ytdlp/*` trong `serve.js`, thư mục `downloads/`
 - Nút **Cobalt** → mở https://cobalt.tools/ (tải online; Pages dùng được)
+- SW `aura-hifi-v6`: JS/CSS/HTML network-first (tránh cache cũ che nút mới)
 - Rule `.cursor/rules/context-protocol.mdc`: mọi agent phải đọc/ghi CONTEXT
 
 ---
