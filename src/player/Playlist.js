@@ -133,4 +133,29 @@ export class Playlist {
     this._notify();
     return this.current;
   }
+
+  /** Bài kế trong order (không đổi index) — dùng preload gapless */
+  peekNext() {
+    if (!this.items.length || this.index < 0) return null;
+    if (this.repeat === 'one') return this.current;
+    const pos = this._order.indexOf(this.index);
+    if (pos < this._order.length - 1) return this.items[this._order[pos + 1]];
+    if (this.repeat === 'all') return this.items[this._order[0]];
+    return null;
+  }
+
+  /** Đổi chỗ 2 index trong danh sách hiển thị */
+  move(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= this.items.length || toIndex >= this.items.length) return;
+    const curId = this.current?.id;
+    const [item] = this.items.splice(fromIndex, 1);
+    this.items.splice(toIndex, 0, item);
+    if (curId) {
+      const ni = this.items.findIndex((t) => t.id === curId);
+      this.index = ni;
+    }
+    this._rebuildOrder();
+    this._notify();
+  }
 }

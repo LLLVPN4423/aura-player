@@ -11,7 +11,9 @@ import {
 } from '../player/formats.js';
 import { analyzeTrack, qualityBadge, lufsNormGainDb } from '../analysis/metrics.js';
 import { Visualizer } from './visualizer.js';
-import { coverDataUrl, extractCoverFromFile } from './cover.js';
+import { coverDataUrl } from './cover.js';
+import { parseId3 } from '../player/id3.js';
+import { exportPlaylistJson, downloadJson, applyPlaylistImport } from '../player/playlistIO.js';
 import { icons } from './icons.js';
 import { DownloadPage } from './DownloadPage.js';
 
@@ -60,13 +62,24 @@ export class App {
       pure: false,
       headphone: 'flat',
       volume: 85,
+      theme: 'dark',
+      crossfeedPreset: 'off',
       ...loadSettings(),
     };
     this._eqPreset = this.settings.headphone || 'flat';
+    this._sessionPeak = 0;
+    this._clipHits = 0;
 
     this.render();
     this.bind();
+    this.applyTheme(this.settings.theme || 'dark');
     this.applySettings();
+  }
+
+  applyTheme(theme) {
+    const t = ['dark', 'dim', 'light'].includes(theme) ? theme : 'dark';
+    this.settings.theme = t;
+    document.documentElement.setAttribute('data-theme', t);
   }
 
   saveSettings() {
@@ -76,7 +89,9 @@ export class App {
   applySettings() {
     this.engine.setPerfMode(this.settings.perf);
     this.engine.setCrossfade(Number(this.settings.crossfade) || 0);
-    this.engine.setCrossfeed(Number(this.settings.crossfeed) || 0);
+    const xf = this.settings.crossfeedPreset || 'off';
+    this.engine.setCrossfeedPreset(xf);
+    this.settings.crossfeed = AudioEngine.CROSSFEED_PRESETS[xf] ?? 0;
     this.engine.setBalance(Number(this.settings.balance) || 0);
     this.engine.setLimiter(!!this.settings.limiter);
     this.engine.setVolume((this.settings.volume || 85) / 100);
@@ -188,7 +203,12 @@ export class App {
         <section class="panel">
           <div class="panel-head">
             <h3>Queue</h3>
-            <span class="hint" id="queue-count">0 bài</span>
+            <div class="queue-tools">
+              <span class="hint" id="queue-count">0 bài</span>
+              <button type="button" class="btn" id="btn-pl-export" title="Xuất JSON">Export</button>
+              <button type="button" class="btn" id="btn-pl-import" title="Nhập JSON">Import</button>
+              <input type="file" id="pl-import-file" class="hidden-file" accept="application/json,.json" />
+            </div>
           </div>
           <div class="tab-body" id="queue-body"></div>
         </section>
@@ -256,6 +276,27 @@ export class App {
     this.root.querySelector('#btn-add').onclick = () => this.els.file.click();
     this.root.querySelector('#btn-fetch').onclick = () => this.downloadPage.open();
     this.root.querySelector('#btn-clear').onclick = () => this.clearAll();
+    this.root.querySelector('#btn-pl-export').onclick = () => {
+      downloadJson(exportPlaylistJson(this.playlist), `aura-playlist-${Date.now()}.json`);
+      this.toast('Đã xuất playlist JSON');
+    };
+    this.root.querySelector('#btn-pl-import').onclick = () => this.root.querySelector('#pl-import-file').click();
+    this.root.querySelector('#pl-import-file').onchange = async (e) => {
+      const f = e.target.files?.[0];
+      e.target.value = '';
+      if (!f) return;
+      try {
+        const data = JSON.parse(await f.text());
+        const { matched, missing } = applyPlaylistImport(this.playlist, data);
+        this.toast(
+          missing.length
+            ? `Khớp ${matched}, thiếu ${missing.length} (Thêm nhạc trước)`
+            : `Đã sắp ${matched} bài`,
+        );
+      } catch (err) {
+        this.toast(err.message || 'Import lỗi');
+      }
+    };
 
     this.els.file.onchange = () => {
       this.addFiles([...this.els.file.files]);
@@ -315,6 +356,8 @@ export class App {
 
     this.engine.on('analysis', (a) => {
       this.viz.draw(a);
+      if (a.peak > this._sessionPeak) this._sessionPeak = a.peak;
+      if (a.peak >= 0.99) this._clipHits += 1;
       if (this.sideTab === 'lab') this.updateLiveMeters(a);
     });
 
@@ -379,27 +422,48 @@ export class App {
     const { items, index } = this.playlist.snapshot();
     this.els.queueCount.textContent = `${items.length} bài`;
     if (!items.length) {
-      this.els.queueBody.innerHTML = `<div class="empty">Hàng đợi trống.<br/>Thêm nhạc hoặc kéo thả tệp.</div>`;
+      this.els.queueBody.innerHTML = `<div class="empty">Hàng đợi trống.<br/>Thêm nhạc · YouTube · Cobalt rồi kéo thả sắp xếp.</div>`;
       return;
     }
     this.els.queueBody.innerHTML = `<ul class="playlist">${items
       .map((t, i) => {
         const fav = this.favorites.has(t.filename) ? ' ♥' : '';
-        return `<li class="${i === index ? 'active' : ''}" data-id="${t.id}">
-          <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+        const sub = t.tags?.artist
+          ? `${escapeHtml(t.tags.artist)}${t.tags.album ? ' · ' + escapeHtml(t.tags.album) : ''}`
+          : `${extOf(t.filename).toUpperCase()} · ${formatBytes(t.size)}`;
+        return `<li class="${i === index ? 'active' : ''}" data-id="${t.id}" data-idx="${i}" draggable="true">
+          <span class="idx" title="Kéo để sắp xếp">${String(i + 1).padStart(2, '0')}</span>
           <div>
-            <div class="name">${escapeHtml(t.name)}${fav}</div>
-            <div class="meta">${extOf(t.filename).toUpperCase()} · ${formatBytes(t.size)}</div>
+            <div class="name">${escapeHtml(t.tags?.title || t.name)}${fav}</div>
+            <div class="meta">${sub}</div>
           </div>
           <button class="rm" data-rm="${t.id}" type="button">${icons.close}</button>
         </li>`;
       })
       .join('')}</ul>`;
 
+    let dragFrom = null;
     this.els.queueBody.querySelectorAll('li').forEach((li) => {
       li.onclick = (e) => {
         if (e.target.closest('[data-rm]')) return;
         this.playTrack(this.playlist.select(li.dataset.id));
+      };
+      li.ondragstart = () => {
+        dragFrom = +li.dataset.idx;
+        li.classList.add('dragging');
+      };
+      li.ondragend = () => li.classList.remove('dragging');
+      li.ondragover = (e) => {
+        e.preventDefault();
+        li.classList.add('drag-over');
+      };
+      li.ondragleave = () => li.classList.remove('drag-over');
+      li.ondrop = (e) => {
+        e.preventDefault();
+        li.classList.remove('drag-over');
+        const to = +li.dataset.idx;
+        if (dragFrom != null && dragFrom !== to) this.playlist.move(dragFrom, to);
+        dragFrom = null;
       };
     });
     this.els.queueBody.querySelectorAll('[data-rm]').forEach((btn) => {
@@ -475,12 +539,16 @@ export class App {
               </div>
             </div>
             <div class="field">
-              <label class="lbl">Bauer crossfeed</label>
-              <div class="row">
-                <input type="range" id="xf" min="0" max="100" value="${Math.round((this.settings.crossfeed || 0) * 100)}" ${pure ? 'disabled' : ''}/>
-                <span class="val" id="xf-v">${Math.round((this.settings.crossfeed || 0) * 100)}%</span>
+              <label class="lbl">Crossfeed</label>
+              <div class="seg" id="xf-preset">
+                ${['off', 'soft', 'bauer']
+                  .map((p) => {
+                    const on = (this.settings.crossfeedPreset || 'off') === p;
+                    return `<button type="button" data-xf="${p}" class="${on ? 'active' : ''}" ${pure ? 'disabled' : ''}>${p}</button>`;
+                  })
+                  .join('')}
               </div>
-              <p class="hint">LP ~700 Hz + delay 0.32 ms — headphone bớt mệt, sân khấu tự nhiên hơn</p>
+              <p class="hint">Bauer: LP ~700 Hz + delay 0.32 ms — headphone bớt mệt</p>
             </div>
             <div class="field">
               <label class="lbl">Balance</label>
@@ -515,12 +583,16 @@ export class App {
         body.querySelector('#cf-v').textContent = `${this.settings.crossfade.toFixed(1)}s`;
         this.saveSettings();
       };
-      body.querySelector('#xf').oninput = (e) => {
-        this.settings.crossfeed = +e.target.value / 100;
-        this.engine.setCrossfeed(this.settings.crossfeed);
-        body.querySelector('#xf-v').textContent = `${e.target.value}%`;
-        this.saveSettings();
-      };
+      body.querySelector('#xf-preset')?.querySelectorAll('[data-xf]').forEach((btn) => {
+        btn.onclick = () => {
+          if (this.settings.pure) return;
+          this.settings.crossfeedPreset = btn.dataset.xf;
+          this.engine.setCrossfeedPreset(btn.dataset.xf);
+          this.settings.crossfeed = AudioEngine.CROSSFEED_PRESETS[btn.dataset.xf] ?? 0;
+          this.saveSettings();
+          this.renderStudio();
+        };
+      });
       body.querySelector('#bal').oninput = (e) => {
         this.settings.balance = +e.target.value / 100;
         this.engine.setBalance(this.settings.balance);
@@ -560,21 +632,26 @@ export class App {
       });
     } else if (this.sideTab === 'lab') {
       const m = this.playlist.current?.meta;
+      const clipWarn = this._clipHits > 0;
       body.innerHTML = `
         <div class="stack">
           <canvas class="wave-mini" id="wave"></canvas>
           <div class="meters">
             <div class="meter"><label>Peak</label><strong id="m-peak">—</strong></div>
             <div class="meter"><label>RMS</label><strong id="m-rms">—</strong></div>
+            <div class="meter"><label>True peak (session)</label><strong id="m-tpeak">${(this._sessionPeak * 100).toFixed(0)}%</strong></div>
+            <div class="meter ${clipWarn ? 'warn' : ''}"><label>Clip hits</label><strong id="m-clip">${this._clipHits}${clipWarn ? ' ⚠' : ''}</strong></div>
             <div class="meter"><label>BPM</label><strong id="m-bpm">${m?.bpm ?? '—'}</strong></div>
             <div class="meter"><label>${m?.loudUnit === 'LUFS' || Number.isFinite(m?.lufs) ? 'LUFS' : 'Loudness'}</label><strong id="m-lufs">${m && Number.isFinite(m.lufs) ? m.lufs.toFixed(1) : m && Number.isFinite(m.loud) ? m.loud.toFixed(1) : '—'} ${m?.loudUnit === 'LUFS' || Number.isFinite(m?.lufs) ? '' : m && Number.isFinite(m.loud) ? 'dB' : ''}</strong></div>
             <div class="meter"><label>Dynamic range</label><strong id="m-dr">${m?.dr != null ? m.dr.toFixed(1) + ' dB' : '—'}</strong></div>
             <div class="meter"><label>Channels</label><strong id="m-ch">${m?.channels ?? '—'}</strong></div>
           </div>
-          <p class="hint">Lab hiển thị phân tích realtime + offline. Tắt trong System nếu máy yếu.</p>
+          <p class="hint">True peak ≈ max sample trong session. Peak ≥ 99% → clip warning.</p>
         </div>`;
       this._labPeak = body.querySelector('#m-peak');
       this._labRms = body.querySelector('#m-rms');
+      this._labTpeak = body.querySelector('#m-tpeak');
+      this._labClip = body.querySelector('#m-clip');
       const wave = body.querySelector('#wave');
       if (wave) {
         this._waveViz = new Visualizer(this.root.querySelector('#spectrum'), wave);
@@ -592,8 +669,17 @@ export class App {
         };
       }
     } else {
+      const theme = this.settings.theme || 'dark';
       body.innerHTML = `
         <div class="stack">
+          <div class="field">
+            <label class="lbl">Theme</label>
+            <div class="seg" id="theme-seg">
+              <button type="button" data-theme="dark" class="${theme === 'dark' ? 'active' : ''}">Dark</button>
+              <button type="button" data-theme="dim" class="${theme === 'dim' ? 'active' : ''}">Dim</button>
+              <button type="button" data-theme="light" class="${theme === 'light' ? 'active' : ''}">Light</button>
+            </div>
+          </div>
           <div class="field">
             <label class="lbl">Hiệu năng</label>
             <div class="seg">
@@ -608,8 +694,15 @@ export class App {
             <label class="lbl">Giải mã trình duyệt</label>
             <div class="support-list" id="support"></div>
           </div>
-          <p class="hint">FFT ${PERF_PRESETS[this.engine.perfMode].fftSize} · ${PERF_PRESETS[this.engine.perfMode].fps} fps · Space / ←→ / ↑↓ / N P</p>
+          <p class="hint">FFT ${PERF_PRESETS[this.engine.perfMode].fftSize} · ${PERF_PRESETS[this.engine.perfMode].fps} fps · Space / ←→ / ↑↓ / N P · Queue kéo thả</p>
         </div>`;
+      body.querySelectorAll('[data-theme]').forEach((btn) => {
+        btn.onclick = () => {
+          this.applyTheme(btn.dataset.theme);
+          this.saveSettings();
+          this.renderStudio();
+        };
+      });
       body.querySelectorAll('[data-perf]').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.perf === this.engine.perfMode);
         btn.onclick = () => {
@@ -644,6 +737,11 @@ export class App {
     if (this._labRms) {
       const db = a.rms > 1e-6 ? (20 * Math.log10(a.rms)).toFixed(1) : '-∞';
       this._labRms.textContent = `${db} dB`;
+    }
+    if (this._labTpeak) this._labTpeak.textContent = `${(this._sessionPeak * 100).toFixed(0)}%`;
+    if (this._labClip) {
+      this._labClip.textContent = `${this._clipHits}${this._clipHits > 0 ? ' ⚠' : ''}`;
+      this._labClip.parentElement?.classList.toggle('warn', this._clipHits > 0);
     }
   }
 
@@ -709,7 +807,7 @@ export class App {
   }
 
   onEnded() {
-    if (this._crossfading || this._skipEnded) return;
+    if (this._crossfading || this._skipEnded || this._gapless) return;
     const next = this.playlist.next();
     if (next) this.playTrack(next, { fromEnded: true });
     else {
@@ -737,8 +835,42 @@ export class App {
     });
   }
 
+  /** Gapless khi crossfade ≈ 0: preload sớm, promote sát cuối bài */
+  maybeGapless() {
+    const cf = this.engine.crossfadeSec;
+    if (cf > 0.05 || this._crossfading || this._gapless || !this.playing) return;
+    const m = this.engine.mediaElement;
+    if (!m?.duration || !Number.isFinite(m.duration)) return;
+    const left = m.duration - m.currentTime;
+    const peek = this.playlist.peekNext();
+    if (!peek || peek.id === this.playlist.current?.id) return;
+
+    if (left <= 12 && this.engine.preloadedId !== peek.id && !this._preloading) {
+      this._preloading = true;
+      this.engine
+        .preloadFile(peek.file, peek.id)
+        .catch(() => {})
+        .finally(() => {
+          this._preloading = false;
+        });
+    }
+
+    if (left > 0.12 || this.engine.preloadedId !== peek.id) return;
+    this._gapless = true;
+    this._skipEnded = true;
+    const next = this.playlist.next();
+    this.playTrack(next, { gapless: true }).finally(() => {
+      this._gapless = false;
+      setTimeout(() => {
+        this._skipEnded = false;
+      }, 400);
+    });
+  }
+
   async playTrack(track, opts = {}) {
     if (!track) return;
+    this._sessionPeak = 0;
+    this._clipHits = 0;
     this.els.title.textContent = track.name;
     this.els.subtitle.textContent = `${track.filename} · ${formatBytes(track.size)}`;
     this.els.fav.classList.toggle('active', this.favorites.has(track.filename));
@@ -747,19 +879,38 @@ export class App {
     if (this.coverUrl?.startsWith('blob:')) URL.revokeObjectURL(this.coverUrl);
     this.coverUrl = coverDataUrl(track.name);
     this.els.cover.src = this.coverUrl;
-    extractCoverFromFile(track.file).then((url) => {
-      if (url && this.playlist.current?.id === track.id) {
-        this.coverUrl = url;
-        this.els.cover.src = url;
-        this.updateMediaSession(track);
+
+    parseId3(track.file).then((tags) => {
+      if (this.playlist.current?.id !== track.id) return;
+      if (tags.title) {
+        track.name = tags.title;
+        this.els.title.textContent = tags.title;
       }
+      const bits = [tags.artist, tags.album, track.filename, formatBytes(track.size)].filter(Boolean);
+      this.els.subtitle.textContent = bits.join(' · ');
+      if (tags.coverUrl) {
+        this.coverUrl = tags.coverUrl;
+        this.els.cover.src = tags.coverUrl;
+      }
+      track.tags = tags;
+      this.updateMediaSession(track);
     });
 
     try {
-      const info = await this.engine.loadFile(track.file, { crossfade: opts.crossfade });
+      let info;
+      if (opts.gapless && this.engine.preloadedId === track.id) {
+        const ok = await this.engine.promotePreload();
+        info = ok
+          ? {
+              duration: this.engine.mediaElement?.duration || 0,
+              sampleRate: this.engine.ctx?.sampleRate,
+            }
+          : await this.engine.loadFile(track.file, { crossfade: 0 });
+      } else {
+        info = await this.engine.loadFile(track.file, { crossfade: opts.crossfade });
+      }
       this.els.tDur.textContent = formatTime(info.duration);
 
-      // Graph vừa sẵn — gắn lại Pure / headphone EQ
       this.engine.setPureMode(!!this.settings.pure);
       if (!this.settings.pure) {
         this.applyHeadphoneOrEq();
@@ -773,7 +924,8 @@ export class App {
       this.els.tier.textContent = this.settings.pure ? 'Pure' : q.tier;
       this.els.badge.textContent = q.label;
 
-      await this.engine.play();
+      if (!opts.gapless) await this.engine.play();
+
       this.playing = true;
       this.els.play.innerHTML = icons.pause;
       this.els.hero.classList.add('is-playing');
@@ -866,9 +1018,9 @@ export class App {
   updateMediaSession(track, duration) {
     if (!('mediaSession' in navigator)) return;
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.name,
-      artist: 'Aura Player',
-      album: extOf(track.filename).toUpperCase(),
+      title: track.tags?.title || track.name,
+      artist: track.tags?.artist || 'Aura Player',
+      album: track.tags?.album || extOf(track.filename).toUpperCase(),
       artwork: this.coverUrl
         ? [{ src: this.coverUrl, sizes: '512x512', type: 'image/jpeg' }]
         : [],
@@ -897,6 +1049,7 @@ export class App {
     if (this._waveViz && this.peaks) {
       this._waveViz.drawStaticPeaks(this.peaks, m.currentTime / m.duration);
     }
+    this.maybeGapless();
   }
 
   toast(msg) {

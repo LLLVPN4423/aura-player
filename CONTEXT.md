@@ -67,16 +67,23 @@ music/
     ├── main.js
     ├── styles/main.css
     ├── player/
-    │   ├── AudioEngine.js   # Web Audio graph, EQ, crossfade, crossfeed…
-    │   ├── Playlist.js
-    │   └── formats.js
+    │   ├── AudioEngine.js   # Web Audio graph, EQ, crossfade, crossfeed, gapless preload
+    │   ├── Playlist.js      # peekNext / move (drag queue)
+    │   ├── formats.js
+    │   ├── headphones.js
+    │   ├── id3.js           # TIT2/TPE1/TALB/APIC
+    │   └── playlistIO.js    # export/import JSON (metadata only)
     ├── analysis/
     │   ├── bpm.js
-    │   └── metrics.js       # DR, loudness norm, quality badge
+    │   ├── lufs.js
+    │   └── metrics.js
+    ├── download/
+    │   └── ytdlpApi.js
     └── ui/
-        ├── App.js           # UI + orchestration
+        ├── App.js
+        ├── DownloadPage.js
         ├── visualizer.js
-        ├── cover.js         # artwork trừu tượng + ID3 APIC
+        ├── cover.js
         └── icons.js
 ```
 
@@ -89,7 +96,7 @@ music/
 1. Listening-first: hero = artwork + title + transport là **một composition**
 2. Kỹ thuật (EQ, meters, codec) nằm trong **Studio** — không làm ồn viewport chính
 3. Ít chrome, nhiều khoảng trống, chữ lớn rõ
-4. Motion ít nhưng có chủ đích (rise, art scale khi playing)
+4. Motion ít nhưng có chủ đích (rise, cover spin khi playing; tôn trọng `prefers-reduced-motion`)
 
 **Tokens** (`src/styles/main.css`)
 
@@ -136,8 +143,13 @@ mediaB → trackGainB ─┴→ sum → crossfeed → EQ(10) → panner → prea
 | Feature | Nơi xử lý | Ghi chú |
 |---------|-----------|---------|
 | Crossfade 0–8s | AudioEngine + App.maybeCrossfade | Dual path |
+| Gapless (cf≈0) | preloadFile → promotePreload | Preload ~12s trước hết bài |
 | Loudness normalize | `analysis/lufs.js` → preamp | Integrated LUFS gần BS.1770, target −14; clamp ±10 dB |
-| Bauer crossfeed | LP 700 Hz + delay 0.32 ms L↔R | 0–100%; Pure = off |
+| Crossfeed presets | off / soft / bauer | Bauer: LP 700 Hz + delay 0.32 ms; Pure = off |
+| Theme | `data-theme` dark/dim/light | System tab |
+| ID3 tags + cover | `player/id3.js` | MP3 TIT2/TPE1/TALB/APIC |
+| Playlist JSON | `playlistIO.js` | Export/import metadata; file local vẫn cần Thêm nhạc |
+| True peak Lab | session peak + clip hits | Peak ≥ 99% |
 | Balance | StereoPanner | −1…1 |
 | Soft limiter | DynamicsCompressor | Bật/tắt trong Sound |
 | EQ 10 band + presets | BiquadFilter chain | flat/bass/vocal/acoustic/night/bright |
@@ -155,9 +167,10 @@ mediaB → trackGainB ─┴→ sum → crossfeed → EQ(10) → panner → prea
 
 ### Fetch (yt-dlp)
 
-- UI: nút **Fetch** → `DownloadPage.js`
+- UI: nút **YouTube** → `DownloadPage.js`
 - API: `serve.js` `/api/ytdlp/*` + thư mục `downloads/`
-- Chỉ local (`node serve.js`); Pages không hỗ trợ
+- Chỉ local (`node serve.js`); Pages không hỗ trợ → tip **Cobalt**
+- Nút **Cobalt** (topbar) → https://cobalt.tools/
 - Binary: PATH hoặc `bin/yt-dlp.exe`
 
 ### Hiệu năng
@@ -180,7 +193,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 - UI tiếng Việt + vài nhãn Hi‑Fi tiếng Anh ngắn (Queue, Studio, Lab, Sound, System, Ready…)
 - Toast ngắn, không modal dày
 - Phím: Space, ←/→, ↑/↓, N/P
-- Drag & drop file audio
+- Drag & drop file audio + kéo thả sắp xếp Queue
 
 ---
 
@@ -200,11 +213,10 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 
 **Nên (nếu user hỏi)**
 
-- Gapless chặt hơn (preload buffer)
-- Lyrics / metadata tags đầy đủ hơn
-- Theme sáng (light listening room) song song dark hiện tại
-- Playlist export/import JSON
-- AutoEQ / headphone profile (nặng — cân nhắc perf)
+- Lyrics / synced LRC
+- IndexedDB lưu file blob kèm playlist JSON
+- AutoEQ / headphone profile đo đạc (nặng — cân nhắc perf)
+- Gapless chặt hơn (AudioWorklet / decode buffer)
 
 **Không tự ý**
 
@@ -230,16 +242,24 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 
 ## 12. Changelog
 
-### 2026-11-06
+### 2026-11-06 (polish no-backend)
+
+- Gapless preload/promote khi crossfade ≈ 0
+- ID3 title/artist/album/cover (`id3.js`)
+- Theme dark / dim / light + cover spin + spectrum theo accent
+- Queue drag-drop reorder + playlist JSON import/export
+- Crossfeed presets off/soft/bauer; Lab true peak + clip hits
+- Cobalt tip trên DownloadPage (Pages)
+- SW `aura-hifi-v7` + cache `id3.js` / `playlistIO.js`
+
+### 2026-11-06 (trước)
 
 - Pure mode + Headphone EQ presets
 - LUFS (BS.1770-ish) normalize + Bauer crossfeed
 - Deploy GitHub Pages + repo `LLLVPN4423/aura-player`
-- **Fetch / YouTube:** nút cạnh Thêm nhạc (nhãn **YouTube**), `DownloadPage`, API `/api/ytdlp/*` trong `serve.js`, thư mục `downloads/`
-- Nút **Cobalt** → mở https://cobalt.tools/ (tải online; Pages dùng được)
-- SW `aura-hifi-v6`: JS/CSS/HTML network-first (tránh cache cũ che nút mới)
-- `.nojekyll` + workflow `.github/workflows/pages.yml` (`build_type: workflow`) — deploy Pages ổn định (nút Cobalt)
-- Rule `.cursor/rules/context-protocol.mdc`: mọi agent phải đọc/ghi CONTEXT
+- **YouTube** local yt-dlp + nút **Cobalt**
+- SW network-first; `.nojekyll` + Pages workflow
+- Rule `.cursor/rules/context-protocol.mdc`
 
 ---
 

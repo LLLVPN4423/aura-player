@@ -68,8 +68,8 @@ export class DownloadPage {
     if (!this.status?.available) {
       banner =
         this.status?.reason === 'pages'
-          ? `<div class="dl-banner">Tải link chỉ chạy khi mở Aura bằng <strong>node serve.js</strong> trên máy bạn (GitHub Pages không chạy được yt-dlp).</div>`
-          : `<div class="dl-banner">Chưa tìm thấy <strong>yt-dlp</strong>. Chạy <code>node serve.js</code> — server sẽ hướng dẫn cài, hoặc đặt <code>bin/yt-dlp.exe</code>.</div>`;
+          ? `<div class="dl-banner">GitHub Pages không chạy yt-dlp. Dùng nút <strong>Cobalt</strong> trên thanh chính → <a href="https://cobalt.tools/" target="_blank" rel="noopener">cobalt.tools</a> tải file, rồi Thêm nhạc / kéo vào Queue. Hoặc chạy local: <code>node serve.js</code>.</div>`
+          : `<div class="dl-banner">Chưa tìm thấy <strong>yt-dlp</strong>. Chạy <code>node serve.js</code> — server sẽ hướng dẫn cài, hoặc đặt <code>bin/yt-dlp.exe</code>. Trên web công khai: dùng <strong>Cobalt</strong>.</div>`;
     } else {
       banner = `<div class="dl-banner ok">Sẵn sàng · yt-dlp ${escapeHtml(this.status.version || '')}${this.status.ffmpeg ? ' · ffmpeg OK' : ' · thiếu ffmpeg (nên cài để ghép/convert)'}</div>`;
     }

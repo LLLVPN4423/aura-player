@@ -234,11 +234,21 @@ a.btn {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 8s var(--ease);
+  transition: transform 0.6s var(--ease);
+  will-change: transform;
 }
 
 .hero.is-playing .art-wrap img {
-  transform: scale(1.04);
+  animation: cover-spin 48s linear infinite;
+}
+
+@keyframes cover-spin {
+  from {
+    transform: rotate(0deg) scale(1.02);
+  }
+  to {
+    transform: rotate(360deg) scale(1.02);
+  }
 }
 
 .art-glow {
@@ -575,6 +585,16 @@ input[type='range']::-webkit-slider-thumb {
   background: rgba(196, 179, 150, 0.08);
 }
 
+.playlist li.dragging {
+  opacity: 0.45;
+}
+
+.playlist li.drag-over {
+  outline: 1px dashed var(--accent);
+  outline-offset: -2px;
+  background: rgba(196, 179, 150, 0.1);
+}
+
 .playlist .idx {
   font-size: 0.72rem;
   color: var(--muted);
@@ -759,6 +779,15 @@ input[type='range']::-webkit-slider-thumb {
   font-size: 1rem;
   font-weight: 600;
   color: var(--accent-2);
+}
+
+.meter.warn {
+  border-color: rgba(196, 122, 114, 0.45);
+  background: rgba(196, 122, 114, 0.12);
+}
+
+.meter.warn strong {
+  color: var(--danger);
 }
 
 .support-list {
@@ -1112,11 +1141,63 @@ body.download-open #app > :not(.topbar):not(.download-host) {
   }
 }
 
+/* Themes */
+html[data-theme='dim'] {
+  --bg: #141412;
+  --bg-2: #1a1a17;
+  --surface: #1f1f1b;
+  --surface-2: #262621;
+  --text: #ebe6dc;
+  --text-soft: #bdb7ab;
+  --muted: #918c84;
+  --accent: #b9ad93;
+  --accent-2: #d4c9b0;
+  --line: rgba(235, 230, 220, 0.09);
+  --line-strong: rgba(235, 230, 220, 0.16);
+}
+
+html[data-theme='light'] {
+  --bg: #ebe6dc;
+  --bg-2: #e2dcd0;
+  --surface: #f4f0e8;
+  --surface-2: #fffdf8;
+  --text: #1c1b18;
+  --text-soft: #4a463e;
+  --muted: #7a7468;
+  --accent: #8a7a58;
+  --accent-2: #5c5040;
+  --ok: #3d6b4f;
+  --danger: #a34a42;
+  --line: rgba(28, 27, 24, 0.08);
+  --line-strong: rgba(28, 27, 24, 0.14);
+  --shadow: 0 20px 48px rgba(40, 35, 25, 0.12);
+}
+
+html[data-theme='light'] body {
+  background:
+    radial-gradient(900px 520px at 50% -8%, rgba(138, 122, 88, 0.12), transparent 55%),
+    radial-gradient(700px 400px at 100% 100%, rgba(90, 110, 90, 0.08), transparent 50%),
+    var(--bg);
+}
+
+html[data-theme='light'] .meter {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.dl-banner a {
+  color: var(--accent-2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+
+  .hero.is-playing .art-wrap img {
+    animation: none;
+    transform: scale(1.02);
   }
 }

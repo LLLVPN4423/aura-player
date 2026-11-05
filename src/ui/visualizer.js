@@ -57,7 +57,10 @@ export class Visualizer {
       const v = frequency[idx] / 255;
       const bh = Math.max(this._dpr, v * h * 0.9);
       const x = i * (barW + gap);
-      ctx.fillStyle = `rgba(196, 179, 150, ${0.18 + v * 0.55})`;
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c4b396';
+      ctx.fillStyle = accent.startsWith('#')
+        ? `color-mix(in srgb, ${accent} ${Math.round(18 + v * 55)}%, transparent)`
+        : `rgba(196, 179, 150, ${0.18 + v * 0.55})`;
       ctx.fillRect(x, mid - bh * 0.55, barW, bh);
     }
   }

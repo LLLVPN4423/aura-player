@@ -299,10 +299,73 @@ export class AudioEngine {
     }
 
     this.active = nextSlot;
+    this._preloadedId = null;
     return {
       duration: nextMedia.duration,
       sampleRate: this.ctx.sampleRate,
     };
+  }
+
+  /** Preload bài kế vào slot inactive (gapless khi crossfade ≈ 0) */
+  async preloadFile(file, trackId = null) {
+    await this.ensureCtx();
+    this._wireSources();
+    const nextSlot = this.active === 'A' ? 'B' : 'A';
+    const nextMedia = nextSlot === 'A' ? this.mediaA : this.mediaB;
+    const urlKey = nextSlot === 'A' ? 'objectUrlA' : 'objectUrlB';
+    if (this[urlKey]) URL.revokeObjectURL(this[urlKey]);
+    this[urlKey] = URL.createObjectURL(file);
+    nextMedia.src = this[urlKey];
+    await new Promise((resolve, reject) => {
+      const onMeta = () => {
+        cleanup();
+        resolve();
+      };
+      const onErr = () => {
+        cleanup();
+        reject(new Error('preload fail'));
+      };
+      const cleanup = () => {
+        nextMedia.removeEventListener('loadedmetadata', onMeta);
+        nextMedia.removeEventListener('error', onErr);
+      };
+      nextMedia.addEventListener('loadedmetadata', onMeta);
+      nextMedia.addEventListener('error', onErr);
+      nextMedia.load();
+    });
+    this._preloadedId = trackId;
+    this._preloadSlot = nextSlot;
+    return true;
+  }
+
+  /** Chuyển tức thì sang bài đã preload */
+  async promotePreload() {
+    if (!this._preloadSlot || this._preloadSlot === this.active) return false;
+    const nextMedia = this._preloadSlot === 'A' ? this.mediaA : this.mediaB;
+    const nextGain = this._preloadSlot === 'A' ? this.trackGainA : this.trackGainB;
+    const curGain = this.active === 'A' ? this.trackGainA : this.trackGainB;
+    const prev = this.mediaElement;
+    const now = this.ctx.currentTime;
+    nextGain.gain.cancelScheduledValues(now);
+    curGain.gain.cancelScheduledValues(now);
+    nextGain.gain.setValueAtTime(1, now);
+    curGain.gain.setValueAtTime(0, now);
+    nextMedia.currentTime = 0;
+    await nextMedia.play();
+    try {
+      prev?.pause();
+    } catch {
+      /* */
+    }
+    this.active = this._preloadSlot;
+    this._preloadedId = null;
+    this._preloadSlot = null;
+    this._startAnalysisLoop();
+    return true;
+  }
+
+  get preloadedId() {
+    return this._preloadedId;
   }
 
   async play() {
@@ -358,6 +421,14 @@ export class AudioEngine {
 
   setCrossfade(sec) {
     this.crossfadeSec = Math.max(0, Math.min(12, sec));
+  }
+
+  static CROSSFEED_PRESETS = { off: 0, soft: 0.28, bauer: 0.55 };
+
+  setCrossfeedPreset(name) {
+    const v = AudioEngine.CROSSFEED_PRESETS[name];
+    if (v == null) return;
+    this.setCrossfeed(v);
   }
 
   setCrossfeed(amount) {
