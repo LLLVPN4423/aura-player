@@ -41,7 +41,7 @@ Không dùng Vite/npm trong setup hiện tại (tránh phụ thuộc esbuild tr�
 
 ---
 
-## 3. Cấu trúc thư mục
+## 4. Cấu trúc thư mục
 
 ```
 music/
@@ -71,7 +71,7 @@ music/
 
 ---
 
-## 4. Design system — Premium Minimalist Hi‑Fi
+## 5. Design system — Premium Minimalist Hi‑Fi
 
 **Nguyên tắc**
 
@@ -106,7 +106,7 @@ music/
 
 ---
 
-## 5. Audio architecture
+## 6. Audio architecture
 
 ### Graph (tóm tắt)
 
@@ -149,7 +149,7 @@ Tự chọn mặc định theo `hardwareConcurrency` / `deviceMemory` / Save-Dat
 
 ---
 
-## 6. Định dạng & giới hạn trình duyệt
+## 7. Định dạng & giới hạn trình duyệt
 
 Hỗ trợ theo `canPlayType`: MP3, WAV, FLAC, AAC, M4A, OGG, Opus, WebM, AIFF…  
 WMA / codec cũ có thể fail.  
@@ -157,7 +157,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 
 ---
 
-## 7. UX / i18n
+## 8. UX / i18n
 
 - UI tiếng Việt + vài nhãn Hi‑Fi tiếng Anh ngắn (Queue, Studio, Lab, Sound, System, Ready…)
 - Toast ngắn, không modal dày
@@ -166,7 +166,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 
 ---
 
-## 8. Quy ước khi code tiếp
+## 9. Quy ước khi code tiếp
 
 1. **Giữ vanilla** — đừng kéo React/Vite trừ khi user yêu cầu rõ
 2. **Hero sạch** — tính năng mới ưu tiên tab Sound/Lab/System hoặc icon transport phụ
@@ -178,7 +178,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 
 ---
 
-## 9. Việc nên / không nên làm tiếp
+## 10. Việc nên / không nên làm tiếp
 
 **Nên (nếu user hỏi)**
 
@@ -197,7 +197,7 @@ Một số file chỉ play qua media element, `decodeAudioData` fail → Lab hi�
 
 ---
 
-## 10. Lịch sử quyết định ngắn
+## 11. Lịch sử quyết định ngắn
 
 | Quyết định | Lý do |
 |------------|--------|
